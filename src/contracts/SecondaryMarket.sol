@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 import "../interfaces/ISecondaryMarket.sol";
 
 contract SecondaryMarket is ISecondaryMarket{
-    /**
+   /**
      * @dev This method lists a ticket with `ticketID` for sale by transferring the ticket
      * such that it is held by this contract. Only the current owner of a specific
      * ticket is able to list that ticket on the secondary market. The purchase
@@ -34,7 +34,27 @@ contract SecondaryMarket is ISecondaryMarket{
 
     }
 
-	/*
+    /**
+     * Returns the current highest bid for the ticket from `ticketCollection` with `ticketID`
+     */
+    function getHighestBid(
+        address ticketCollection,
+        uint256 ticketId
+    ) external view returns (uint256){
+
+    }
+
+    /**
+     * Returns the current highest bidder for the ticket from `ticketCollection` with `ticketID`
+     */
+    function getHighestBidder(
+        address ticketCollection,
+        uint256 ticketId
+    ) external view returns (address){
+
+    }
+
+    /*
      * @notice Allow the lister of the ticket from `ticketCollection` with `ticketID` to accept the current highest bid.
      * This function reverts if there is currently no bid.
      * Otherwise, it should accept the highest bid, transfer the money to the lister of the ticket,

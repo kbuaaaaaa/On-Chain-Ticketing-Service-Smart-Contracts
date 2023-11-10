@@ -4,20 +4,17 @@ import "../interfaces/IPrimaryMarket.sol";
 
 contract PrimaryMarket is IPrimaryMarket{
     /**
-    * The primary market is the first point of sale for tickets.
-    * It is responsible for minting tickets and transferring them to the purchaser.
-    * The NFT to be minted is an implementation of the ITicketNFT interface and should be created (i.e. deployed)
-    * when a new event NFT collection is created
-    * In this implementation, the purchase price and the maximum number of tickets
-    * is set when an event NFT collection is created
-    * The purchase token is an ERC20 token that is specified when the contract is deployed.
-    */
+     *
+     * @param eventName is the name of the event to create
+     * @param price is the price of a single ticket for this event
+     * @param maxNumberOfTickets is the maximum number of tickets that can be created for this event
+     */
     function createNewEvent(
         string memory eventName,
         uint256 price,
         uint256 maxNumberOfTickets
     ) external returns (ITicketNFT ticketCollection){
-
+        
     }
 
     /**
@@ -32,6 +29,16 @@ contract PrimaryMarket is IPrimaryMarket{
         address ticketCollection,
         string memory holderName
     ) external returns (uint256 id){
+
+    }
+
+    /**
+     * @param ticketCollection the collection from which to get the price
+     * @return price of a ticket for the event associated with `ticketCollection`
+     */
+    function getPrice(
+        address ticketCollection
+    ) external view returns (uint256 price){
 
     }
 }

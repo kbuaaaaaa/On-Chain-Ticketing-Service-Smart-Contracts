@@ -15,12 +15,27 @@ contract TicketNFT is ITicketNFT{
         _expiryDate = block.timestamp + (10*86400);
         _creator = msg.sender;
     }
-    /**
+
+        /**
      * @dev Returns the address of the user who created the NFT collection
      * This is the address of the user who called `createNewEvent` in the primary market
      */
     function creator() external view returns (address){
-        return _creator;
+        
+    }
+
+    /**
+     * @dev Returns the maximum number of tickets that can be minted for this event.
+     */
+    function maxNumberOfTickets() external view returns (uint256){
+
+    }
+
+	/**
+     * @dev Returns the name of the event for this TicketNFT
+     */
+    function eventName() external view returns (string memory){
+
     }
 
     /**
@@ -35,7 +50,7 @@ contract TicketNFT is ITicketNFT{
      *
      * - The caller must be the primary market
      */
-    function mint(address holder, string memory holderName) external{
+    function mint(address holder, string memory holderName) external returns (uint256 id){
 
     }
 
@@ -103,12 +118,9 @@ contract TicketNFT is ITicketNFT{
      *
      * - `ticketID` must exist.
      */
-    function getApproved(uint256 ticketID)
-        external
-        view
-        returns (address operator){
+    function getApproved(uint256 ticketID) external view returns (address operator){
 
-        }
+    }
 
     /**
      * @dev Returns the current `holderName` associated with a `ticketID`.
@@ -132,10 +144,9 @@ contract TicketNFT is ITicketNFT{
      * - `ticketID` must exists
      * - Only the current holder can call this function
      */
-    function updateHolderName(uint256 ticketID, string calldata newName)
-        external{
+    function updateHolderName(uint256 ticketID, string calldata newName) external{
 
-        }
+    }
 
     /**
      * @dev Sets the `used` flag associated with a `ticketID` to `true`
@@ -160,6 +171,6 @@ contract TicketNFT is ITicketNFT{
      * - `ticketID` must exist
      */
     function isExpiredOrUsed(uint256 ticketID) external view returns (bool){
-
+        
     }
 }
