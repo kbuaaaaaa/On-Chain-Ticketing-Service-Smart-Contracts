@@ -113,8 +113,8 @@ contract TicketNFT is ITicketNFT{
         "the caller must either: own `ticketID` or be approved to move this ticket using `approve`");
         _tickets[ticketID].holder = to;
         _tickets[ticketID].approved = address(0);
-        emit Approval(msg.sender, address(0), ticketID);
         emit Transfer(from, to, ticketID);
+        emit Approval(to, address(0), ticketID);
     }
 
     /**
