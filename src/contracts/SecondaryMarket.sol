@@ -53,10 +53,12 @@ contract SecondaryMarket is ISecondaryMarket{
         TicketNFT ticketNFT = TicketNFT(ticketCollection);
         require(!ticketNFT.isExpiredOrUsed(ticketID), "Bid can only be made on non-expired and unused tickets");
         if (bidAmount > _listings[ticketCollection][ticketID].highestBid){
-            address highestBidder = _listings[ticketCollection][ticketID].highestBidder;
-            uint256 highestBid = _listings[ticketCollection][ticketID].highestBid;
-            _purchasetoken.approve(highestBidder, highestBid);
-            _purchasetoken.transfer(highestBidder, highestBid);
+            if (_listings[ticketCollection][ticketID].highestBidder != address(0)){
+                address highestBidder = _listings[ticketCollection][ticketID].highestBidder;
+                uint256 highestBid = _listings[ticketCollection][ticketID].highestBid;
+                _purchasetoken.approve(highestBidder, highestBid);
+                _purchasetoken.transfer(highestBidder, highestBid);
+            }
             _listings[ticketCollection][ticketID].highestBidder = msg.sender;
             _listings[ticketCollection][ticketID].highestBid = bidAmount;
             _listings[ticketCollection][ticketID].highestBidderName = name;
@@ -108,8 +110,8 @@ contract SecondaryMarket is ISecondaryMarket{
         _purchasetoken.transfer(lister, finalPrice);
         _purchasetoken.approve(creator, fee);
         _purchasetoken.transfer(creator, fee);
-        ticketNFT.transferFrom(lister, highestBidder, ticketID);
         ticketNFT.updateHolderName(ticketID, highestBidderName);
+        ticketNFT.transferFrom(address(this), highestBidder, ticketID);
         emit BidAccepted(highestBidder, ticketCollection, ticketID, highestBid, highestBidderName);
 
     }
@@ -119,10 +121,12 @@ contract SecondaryMarket is ISecondaryMarket{
      * to msg.sender, i.e., the lister, and escrowed bid funds should be return to the bidder, if any.
      */
     function delistTicket(address ticketCollection, uint256 ticketID) external{
-        address highestBidder = _listings[ticketCollection][ticketID].highestBidder;
-        uint256 highestBid = _listings[ticketCollection][ticketID].highestBid;
-        _purchasetoken.approve(highestBidder, highestBid);
-        _purchasetoken.transfer(highestBidder, highestBid);
+        if (_listings[ticketCollection][ticketID].highestBidder != address(0)){
+            address highestBidder = _listings[ticketCollection][ticketID].highestBidder;
+            uint256 highestBid = _listings[ticketCollection][ticketID].highestBid;
+            _purchasetoken.approve(highestBidder, highestBid);
+            _purchasetoken.transfer(highestBidder, highestBid);
+        }
         delete _listings[ticketCollection][ticketID];
         emit Delisting(ticketCollection, ticketID);
     }

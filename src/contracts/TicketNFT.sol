@@ -65,6 +65,7 @@ contract TicketNFT is ITicketNFT{
         require(id < _maxNumberOfTickets, "Maximum ticket number reached");
         uint256 curr_id = _id++;
         _tickets[curr_id] = Ticket(holder, holderName, false, block.timestamp + (10 * 86400), holder);
+        _balanceOf[holder]++;
         emit Transfer(address(0), holder, curr_id);
         return curr_id;
     }
@@ -113,6 +114,8 @@ contract TicketNFT is ITicketNFT{
         "the caller must either: own `ticketID` or be approved to move this ticket using `approve`");
         _tickets[ticketID].holder = to;
         _tickets[ticketID].approved = address(0);
+        _balanceOf[from]--;
+        _balanceOf[to]++;
         emit Transfer(from, to, ticketID);
         emit Approval(to, address(0), ticketID);
     }
