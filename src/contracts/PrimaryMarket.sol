@@ -1,8 +1,17 @@
 pragma solidity ^0.8.10;
 
 import "../interfaces/IPrimaryMarket.sol";
+import "../contracts/TicketNFT.sol";
+import "../contracts/PurchaseToken.sol";
 
 contract PrimaryMarket is IPrimaryMarket{
+    PurchaseToken private _purchaseToken;
+    mapping(address => uint256) _eventTicketPrice;
+
+    constructor(PurchaseToken purchaseToken){
+        _purchaseToken = purchaseToken;
+    }
+
     /**
      *
      * @param eventName is the name of the event to create
@@ -14,7 +23,9 @@ contract PrimaryMarket is IPrimaryMarket{
         uint256 price,
         uint256 maxNumberOfTickets
     ) external returns (ITicketNFT ticketCollection){
-        
+        ITicketNFT currentTicketCollection = new TicketNFT(eventName, maxNumberOfTickets, msg.sender);
+        _eventTicketPrice[address(currentTicketCollection)] = price;
+        return currentTicketCollection;
     }
 
     /**
@@ -29,7 +40,11 @@ contract PrimaryMarket is IPrimaryMarket{
         address ticketCollection,
         string memory holderName
     ) external returns (uint256 id){
-
+        TicketNFT ticketNFT = TicketNFT(ticketCollection);
+        uint256 price = _eventTicketPrice[address(ticketCollection)];
+        address creator = ticketNFT.creator();
+        _purchaseToken.transferFrom(msg.sender, creator, price);
+        return ticketNFT.mint(msg.sender, holderName);
     }
 
     /**
@@ -39,6 +54,6 @@ contract PrimaryMarket is IPrimaryMarket{
     function getPrice(
         address ticketCollection
     ) external view returns (uint256 price){
-
+        return _eventTicketPrice[ticketCollection];
     }
 }
