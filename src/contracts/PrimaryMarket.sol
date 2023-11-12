@@ -6,7 +6,7 @@ import "../contracts/PurchaseToken.sol";
 
 contract PrimaryMarket is IPrimaryMarket{
     PurchaseToken private _purchaseToken;
-    mapping(address => uint256) _eventTicketPrice;
+    mapping(address => uint256) private _eventTicketPrice;
 
     constructor(PurchaseToken purchaseToken){
         _purchaseToken = purchaseToken;
