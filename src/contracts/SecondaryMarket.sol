@@ -5,14 +5,14 @@ import "../contracts/PurchaseToken.sol";
 import "../contracts/TicketNFT.sol";
 
 contract SecondaryMarket is ISecondaryMarket{
-    struct Listing{
+    struct ListingInformation{
         address lister;
         address highestBidder;
         string highestBidderName;
         uint256 highestBid;
     }
     PurchaseToken private _purchasetoken;
-    mapping(address => mapping(uint256 => Listing)) private _listings;
+    mapping(address => mapping(uint256 => ListingInformation)) private _listings;
 
     constructor(PurchaseToken purchaseToken){
         _purchasetoken = purchaseToken;
@@ -33,7 +33,8 @@ contract SecondaryMarket is ISecondaryMarket{
         TicketNFT ticketNFT = TicketNFT(ticketCollection);
         require(!ticketNFT.isExpiredOrUsed(ticketID), "Only non-expired and unused tickets can be listed");
         ticketNFT.transferFrom(msg.sender, address(this), ticketID);
-        _listings[ticketCollection][ticketID] = Listing(msg.sender, address(0), "", price);
+        _listings[ticketCollection][ticketID] = ListingInformation(msg.sender, address(0), "", price);
+        emit Listing(msg.sender, ticketCollection, ticketID, price);
     }
 
     /** @notice This method allows the msg.sender to submit a bid for the ticket from `ticketCollection` with `ticketID`
@@ -61,7 +62,7 @@ contract SecondaryMarket is ISecondaryMarket{
             _listings[ticketCollection][ticketID].highestBidderName = name;
             _purchasetoken.transferFrom(msg.sender, address(this), bidAmount);
         }
-
+        emit BidSubmitted(msg.sender, ticketCollection, ticketID, bidAmount, name);
     }
 
     /**
@@ -109,6 +110,7 @@ contract SecondaryMarket is ISecondaryMarket{
         _purchasetoken.transfer(creator, fee);
         ticketNFT.transferFrom(lister, highestBidder, ticketID);
         ticketNFT.updateHolderName(ticketID, highestBidderName);
+        emit BidAccepted(highestBidder, ticketCollection, ticketID, highestBid, highestBidderName);
 
     }
 
@@ -117,6 +119,11 @@ contract SecondaryMarket is ISecondaryMarket{
      * to msg.sender, i.e., the lister, and escrowed bid funds should be return to the bidder, if any.
      */
     function delistTicket(address ticketCollection, uint256 ticketID) external{
+        address highestBidder = _listings[ticketCollection][ticketID].highestBidder;
+        uint256 highestBid = _listings[ticketCollection][ticketID].highestBid;
+        _purchasetoken.approve(highestBidder, highestBid);
+        _purchasetoken.transfer(highestBidder, highestBid);
         delete _listings[ticketCollection][ticketID];
+        emit Delisting(ticketCollection, ticketID);
     }
 }

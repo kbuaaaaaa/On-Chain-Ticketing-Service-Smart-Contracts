@@ -25,6 +25,7 @@ contract PrimaryMarket is IPrimaryMarket{
     ) external returns (ITicketNFT ticketCollection){
         ITicketNFT currentTicketCollection = new TicketNFT(eventName, maxNumberOfTickets, msg.sender);
         _eventTicketPrice[address(currentTicketCollection)] = price;
+        emit EventCreated(msg.sender, address(this), eventName, price, maxNumberOfTickets);
         return currentTicketCollection;
     }
 
@@ -44,7 +45,9 @@ contract PrimaryMarket is IPrimaryMarket{
         uint256 price = _eventTicketPrice[address(ticketCollection)];
         address creator = ticketNFT.creator();
         _purchaseToken.transferFrom(msg.sender, creator, price);
-        return ticketNFT.mint(msg.sender, holderName);
+        id = ticketNFT.mint(msg.sender, holderName);
+        emit Purchase(msg.sender, ticketCollection, id, holderName);
+        return id;
     }
 
     /**
