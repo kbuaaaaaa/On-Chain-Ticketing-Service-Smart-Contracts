@@ -3,17 +3,27 @@ pragma solidity ^0.8.10;
 import "../interfaces/ITicketNFT.sol";
 
 contract TicketNFT is ITicketNFT{
-    string _eventName;
-    uint256 _ticketId;
-    string _ownerName;
-    uint _expiryDate;
-    bool _ticketUsed;
-    address _creator;
+    struct Ticket{
+        address holder;
+        string holderName;
+        bool used;
+        uint expiryDate;
+        address approved;
+    }
+    string private _eventName;
+    address private _primaryMarket;
+    address private _creator;
+    uint256 private _maxNumberOfTickets;
+    uint256 private _id;
+    mapping(uint256 => Ticket) private _tickets;
+    mapping(address => uint256) private _balanceOf;
 
-    constructor(string memory eventName){
-        _eventName = eventName;
-        _expiryDate = block.timestamp + (10*86400);
-        _creator = msg.sender;
+    constructor(string memory createEventName, uint256 createMaxNumberOfTickets, address eventCreator){
+        _eventName = createEventName;
+        _creator = eventCreator;
+        _primaryMarket = msg.sender;
+        _maxNumberOfTickets = createMaxNumberOfTickets;
+        _id = 0;
     }
 
         /**
@@ -21,21 +31,21 @@ contract TicketNFT is ITicketNFT{
      * This is the address of the user who called `createNewEvent` in the primary market
      */
     function creator() external view returns (address){
-        
+        return _creator;
     }
 
     /**
      * @dev Returns the maximum number of tickets that can be minted for this event.
      */
     function maxNumberOfTickets() external view returns (uint256){
-
+        return _maxNumberOfTickets;
     }
 
 	/**
      * @dev Returns the name of the event for this TicketNFT
      */
     function eventName() external view returns (string memory){
-
+        return _eventName;
     }
 
     /**
@@ -51,14 +61,19 @@ contract TicketNFT is ITicketNFT{
      * - The caller must be the primary market
      */
     function mint(address holder, string memory holderName) external returns (uint256 id){
-
+        require(msg.sender == _primaryMarket, "The caller must be the primary market");
+        require(id < _maxNumberOfTickets, "Maximum ticket number reached");
+        uint256 curr_id = _id++;
+        _tickets[curr_id] = Ticket(holder, holderName, false, block.timestamp + (10 * 86400), holder);
+        emit Transfer(address(0), holder, curr_id);
+        return curr_id;
     }
 
     /**
      * @dev Returns the number of tickets a `holder` has.
      */
     function balanceOf(address holder) external view returns (uint256 balance){
-
+        return _balanceOf[holder];
     }
 
     /**
@@ -69,7 +84,8 @@ contract TicketNFT is ITicketNFT{
      * - `ticketID` must exist.
      */
     function holderOf(uint256 ticketID) external view returns (address holder){
-
+        require(ticketID < _id, "TicketID does not exist");
+        return _tickets[ticketID].holder;
     }
 
     /**
@@ -91,7 +107,14 @@ contract TicketNFT is ITicketNFT{
         address to,
         uint256 ticketID
     ) external{
-
+        require(from != address(0), "`from` cannot be the zero address");
+        require(to != address(0), "`to` cannot be the zero address");
+        require(msg.sender == _tickets[ticketID].holder || msg.sender == _tickets[ticketID].approved,
+        "the caller must either: own `ticketID` or be approved to move this ticket using `approve`");
+        _tickets[ticketID].holder = to;
+        _tickets[ticketID].approved = address(0);
+        emit Approval(msg.sender, address(0), ticketID);
+        emit Transfer(from, to, ticketID);
     }
 
     /**
@@ -108,6 +131,10 @@ contract TicketNFT is ITicketNFT{
      * Emits an `Approval` event.
      */
     function approve(address to, uint256 ticketID) external{
+        require(msg.sender == _tickets[ticketID].holder, "The caller must own the ticket");
+        require(ticketID < _id, "`ticketID` must exist");
+        _tickets[ticketID].approved = to;
+        emit Approval(msg.sender, to, ticketID);
 
     }
 
@@ -119,7 +146,8 @@ contract TicketNFT is ITicketNFT{
      * - `ticketID` must exist.
      */
     function getApproved(uint256 ticketID) external view returns (address operator){
-
+        require(ticketID < _id, "`ticketID` must exist");
+        return _tickets[ticketID].approved;
     }
 
     /**
@@ -132,7 +160,8 @@ contract TicketNFT is ITicketNFT{
         external
         view
         returns (string memory holderName){
-
+            require(ticketID < _id, "`ticketID` must exist");
+            return _tickets[ticketID].holderName;
         }
 
     /**
@@ -145,7 +174,9 @@ contract TicketNFT is ITicketNFT{
      * - Only the current holder can call this function
      */
     function updateHolderName(uint256 ticketID, string calldata newName) external{
-
+        require(ticketID < _id, "`ticketID` must exist");
+        require(msg.sender == _tickets[ticketID].holder, "Only the current holder can call this function");
+        _tickets[ticketID].holderName = newName;      
     }
 
     /**
@@ -159,7 +190,11 @@ contract TicketNFT is ITicketNFT{
      * - Only the creator of the collection can call this function
      */
     function setUsed(uint256 ticketID) external{
-
+        require(ticketID < _id, "`ticketID` must exist");
+        require(_tickets[ticketID].used == false, "the ticket must not already be used");
+        require(_tickets[ticketID].expiryDate >= block.timestamp, "the ticket must not be expired");
+        require(msg.sender == _creator, "Only the creator of the collection can call this function");
+        _tickets[ticketID].used = true;
     }
 
     /**
@@ -171,6 +206,7 @@ contract TicketNFT is ITicketNFT{
      * - `ticketID` must exist
      */
     function isExpiredOrUsed(uint256 ticketID) external view returns (bool){
-        
+        require(ticketID < _id, "`ticketID` must exist");
+        return _tickets[ticketID].used || block.timestamp > _tickets[ticketID].expiryDate;
     }
 }
