@@ -153,15 +153,28 @@ contract Unit is Test {
         ticketNFT.approve(address(secondaryMarket), 0);
         secondaryMarket.listTicket(address(ticketNFT), 0, 150e18);
         vm.stopPrank();
+
         vm.startPrank(bob);
         purchaseToken.mint{value: 2e18}();
-        purchaseToken.approve(address(secondaryMarket), 140e18);
-        secondaryMarket.submitBid(address(ticketNFT), 0, 140e18, "Bob");
+        purchaseToken.approve(address(secondaryMarket), 155e18);
+        secondaryMarket.submitBid(address(ticketNFT), 0, 155e18, "Bob");
         assertEq(
             secondaryMarket.getHighestBid(address(ticketNFT), 0),
-            150e18
+            155e18
         );
-        assertEq(secondaryMarket.getHighestBidder(address(ticketNFT), 0), address(0));    
+        assertEq(secondaryMarket.getHighestBidder(address(ticketNFT), 0), bob);
+        assertEq(purchaseToken.balanceOf(address(secondaryMarket)), 155e18);
+        vm.stopPrank();
+
+        vm.startPrank(alice);
+        purchaseToken.mint{value: 2e18}();
+        purchaseToken.approve(address(secondaryMarket), 140e18);
+        secondaryMarket.submitBid(address(ticketNFT), 0, 140e18, "Alice");
+        assertEq(
+            secondaryMarket.getHighestBid(address(ticketNFT), 0),
+            155e18
+        );
+        assertEq(secondaryMarket.getHighestBidder(address(ticketNFT), 0), bob);    
         vm.stopPrank();  
     }
 
@@ -173,11 +186,11 @@ contract Unit is Test {
         ticketNFT.approve(address(secondaryMarket), 0);
         secondaryMarket.listTicket(address(ticketNFT), 0, 150e18);
         vm.stopPrank();
+
         vm.startPrank(bob);
         purchaseToken.mint{value: 2e18}();
         purchaseToken.approve(address(secondaryMarket), 155e18);
         secondaryMarket.submitBid(address(ticketNFT), 0, 155e18, "Bob");
-
         assertEq(
             secondaryMarket.getHighestBid(address(ticketNFT), 0),
             155e18

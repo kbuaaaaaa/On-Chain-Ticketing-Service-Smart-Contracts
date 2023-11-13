@@ -54,7 +54,7 @@ contract SecondaryMarket is ISecondaryMarket{
     ) external{
         TicketNFT ticketNFT = TicketNFT(ticketCollection);
         require(!ticketNFT.isExpiredOrUsed(ticketID), "Bid can only be made on non-expired and unused tickets");
-        if (bidAmount > _listings[ticketCollection][ticketID].highestBid){
+        if (bidAmount > _listings[ticketCollection][ticketID].highestBid || _listings[ticketCollection][ticketID].highestBidder == address(0)){
             if (_listings[ticketCollection][ticketID].highestBidder != address(0)){
                 address highestBidder = _listings[ticketCollection][ticketID].highestBidder;
                 uint256 highestBid = _listings[ticketCollection][ticketID].highestBid;
