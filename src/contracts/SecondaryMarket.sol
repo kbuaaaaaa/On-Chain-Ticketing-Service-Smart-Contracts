@@ -8,6 +8,7 @@ contract SecondaryMarket is ISecondaryMarket{
     struct ListingInformation{
         address lister;
         address highestBidder;
+        string listerName;
         string highestBidderName;
         uint256 highestBid;
     }
@@ -31,9 +32,10 @@ contract SecondaryMarket is ISecondaryMarket{
         uint256 price
     ) external{
         TicketNFT ticketNFT = TicketNFT(ticketCollection);
+        require(msg.sender == ticketNFT.holderOf(ticketID), "Only the holder of the ticket can list ticket");
         require(!ticketNFT.isExpiredOrUsed(ticketID), "Only non-expired and unused tickets can be listed");
         ticketNFT.transferFrom(msg.sender, address(this), ticketID);
-        _listings[ticketCollection][ticketID] = ListingInformation(msg.sender, address(0), "", price);
+        _listings[ticketCollection][ticketID] = ListingInformation(msg.sender, address(0), ticketNFT.holderNameOf(ticketID), "", price);
         emit Listing(msg.sender, ticketCollection, ticketID, price);
     }
 
@@ -112,6 +114,7 @@ contract SecondaryMarket is ISecondaryMarket{
         _purchasetoken.transfer(creator, fee);
         ticketNFT.updateHolderName(ticketID, highestBidderName);
         ticketNFT.transferFrom(address(this), highestBidder, ticketID);
+        delete _listings[ticketCollection][ticketID];
         emit BidAccepted(highestBidder, ticketCollection, ticketID, highestBid, highestBidderName);
 
     }
@@ -121,12 +124,16 @@ contract SecondaryMarket is ISecondaryMarket{
      * to msg.sender, i.e., the lister, and escrowed bid funds should be return to the bidder, if any.
      */
     function delistTicket(address ticketCollection, uint256 ticketID) external{
+        require(msg.sender == _listings[ticketCollection][ticketID].lister, "Only the account that listed the ticket may delist the ticket");
         if (_listings[ticketCollection][ticketID].highestBidder != address(0)){
             address highestBidder = _listings[ticketCollection][ticketID].highestBidder;
             uint256 highestBid = _listings[ticketCollection][ticketID].highestBid;
             _purchasetoken.approve(highestBidder, highestBid);
             _purchasetoken.transfer(highestBidder, highestBid);
         }
+        TicketNFT ticketNFT = TicketNFT(ticketCollection);
+        ticketNFT.transferFrom(address(this), _listings[ticketCollection][ticketID].lister, ticketID);
+        ticketNFT.updateHolderName(ticketID, _listings[ticketCollection][ticketID].listerName);
         delete _listings[ticketCollection][ticketID];
         emit Delisting(ticketCollection, ticketID);
     }
