@@ -99,6 +99,7 @@ contract SecondaryMarket is ISecondaryMarket{
      * minus the fee. The fee should go to the creator of the `ticketCollection`.
      */
     function acceptBid(address ticketCollection, uint256 ticketID) external{
+        require(msg.sender == _listings[ticketCollection][ticketID].lister, "Only the ticket lister can accept bid");
         require(_listings[ticketCollection][ticketID].highestBidder != address(0), "There is currently no bid");
         TicketNFT ticketNFT = TicketNFT(ticketCollection);
         address creator = ticketNFT.creator();
@@ -132,8 +133,8 @@ contract SecondaryMarket is ISecondaryMarket{
             _purchasetoken.transfer(highestBidder, highestBid);
         }
         TicketNFT ticketNFT = TicketNFT(ticketCollection);
-        ticketNFT.transferFrom(address(this), _listings[ticketCollection][ticketID].lister, ticketID);
         ticketNFT.updateHolderName(ticketID, _listings[ticketCollection][ticketID].listerName);
+        ticketNFT.transferFrom(address(this), _listings[ticketCollection][ticketID].lister, ticketID);
         delete _listings[ticketCollection][ticketID];
         emit Delisting(ticketCollection, ticketID);
     }
