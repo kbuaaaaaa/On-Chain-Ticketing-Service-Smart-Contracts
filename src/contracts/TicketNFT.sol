@@ -62,9 +62,9 @@ contract TicketNFT is ITicketNFT{
      */
     function mint(address holder, string memory holderName) external returns (uint256 id){
         require(msg.sender == _primaryMarket, "The caller must be the primary market");
-        require(id < _maxNumberOfTickets, "Maximum ticket number reached");
+        require(_id < _maxNumberOfTickets, "Maximum ticket number reached");
         uint256 curr_id = _id++;
-        _tickets[curr_id] = Ticket(holder, holderName, false, block.timestamp + (10 * 86400), holder);
+        _tickets[curr_id] = Ticket(holder, holderName, false, block.timestamp + 864000, holder);
         _balanceOf[holder]++;
         emit Transfer(address(0), holder, curr_id);
         return curr_id;

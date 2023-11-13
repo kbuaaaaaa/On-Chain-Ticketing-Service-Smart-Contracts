@@ -159,4 +159,5 @@ interface ITicketNFT {
      * - `ticketID` must exist
      */
     function isExpiredOrUsed(uint256 ticketID) external view returns (bool);
+
 }
