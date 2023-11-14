@@ -103,6 +103,18 @@ contract Unit is Test {
         vm.stopPrank();
     }
 
+    function testListTicketAlreadyListed() external {
+        vm.startPrank(alice);
+        purchaseToken.mint{value: 1e18}();
+        purchaseToken.approve(address(primaryMarket), 100e18);
+        primaryMarket.purchase(address(ticketNFT), "Alice");
+        ticketNFT.approve(address(secondaryMarket), 0);
+        secondaryMarket.listTicket(address(ticketNFT), 0, 150e18);
+        vm.expectRevert("Listing already exist");
+        secondaryMarket.listTicket(address(ticketNFT), 0, 150e18);
+        vm.stopPrank();
+    }
+
     function testListTicketNoApproval() external {
         vm.startPrank(alice);
         purchaseToken.mint{value: 1e18}();
@@ -119,7 +131,8 @@ contract Unit is Test {
         purchaseToken.mint{value: 1e18}();
         purchaseToken.approve(address(primaryMarket), 100e18);
         primaryMarket.purchase(address(ticketNFT), "Alice");
-        vm.stopPrank();  
+        vm.stopPrank(); 
+
         vm.startPrank(bob);
         vm.expectRevert("Only the holder of the ticket can list ticket"); 
         secondaryMarket.listTicket(address(ticketNFT), 0, 150e18);
@@ -142,6 +155,45 @@ contract Unit is Test {
         ticketNFT.approve(address(secondaryMarket), 0);
         vm.expectRevert("Only non-expired and unused tickets can be listed");
         secondaryMarket.listTicket(address(ticketNFT), 0, 150e18);
+        vm.stopPrank();
+    }
+
+    function testListDelistListTicket() external {
+        vm.startPrank(alice);
+        purchaseToken.mint{value: 1e18}();
+        purchaseToken.approve(address(primaryMarket), 100e18);
+        primaryMarket.purchase(address(ticketNFT), "Alice");
+        ticketNFT.approve(address(secondaryMarket), 0);
+        secondaryMarket.listTicket(address(ticketNFT), 0, 150e18);
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        purchaseToken.mint{value: 2e18}();
+        purchaseToken.approve(address(secondaryMarket), 155e18);
+        secondaryMarket.submitBid(address(ticketNFT), 0, 155e18, "Bob");
+        vm.stopPrank();
+
+        vm.startPrank(alice);
+        uint256 bobBalanceBefore = purchaseToken.balanceOf(bob);
+        secondaryMarket.delistTicket(address(ticketNFT), 0);
+        assertEq(ticketNFT.balanceOf(alice), 1);
+        assertEq(ticketNFT.balanceOf(address(secondaryMarket)), 0);
+        assertEq(ticketNFT.holderOf(0), alice);
+        assertEq(ticketNFT.holderNameOf(0), "Alice");
+        assertEq(purchaseToken.balanceOf(bob), bobBalanceBefore + 155e18);
+        assertEq(purchaseToken.balanceOf(address(secondaryMarket)), 0);
+
+        ticketNFT.approve(address(secondaryMarket), 0);
+        secondaryMarket.listTicket(address(ticketNFT), 0, 150e18);
+        assertEq(secondaryMarket.getHighestBid(address(ticketNFT), 0), 150e18);
+        assertEq(
+            secondaryMarket.getHighestBidder(address(ticketNFT), 0),
+            address(0)
+        );
+        assertEq(ticketNFT.balanceOf(alice), 0);
+        assertEq(ticketNFT.balanceOf(address(secondaryMarket)), 1);
+        assertEq(ticketNFT.holderOf(0), address(secondaryMarket));
+        assertEq(ticketNFT.holderNameOf(0), "Alice");
         vm.stopPrank();
     }
 
@@ -199,6 +251,15 @@ contract Unit is Test {
         assertEq(purchaseToken.balanceOf(address(secondaryMarket)), 155e18);
         vm.stopPrank();
     }
+    
+    function testSubmitBidListingNotExist() external {
+        vm.startPrank(bob);
+        purchaseToken.mint{value: 2e18}();
+        purchaseToken.approve(address(secondaryMarket), 155e18);
+        vm.expectRevert("Listing does not exist");
+        secondaryMarket.submitBid(address(ticketNFT), 0, 155e18, "Bob");
+        vm.stopPrank();
+    }
 
     function testSubmitBidUsedTicket() external {
         vm.startPrank(alice);
@@ -228,6 +289,7 @@ contract Unit is Test {
         ticketNFT.approve(address(secondaryMarket), 0);
         secondaryMarket.listTicket(address(ticketNFT), 0, 150e18);
         vm.stopPrank();
+
         vm.startPrank(bob);
         purchaseToken.mint{value: 2e18}();
         purchaseToken.approve(address(secondaryMarket), 155e18);
@@ -249,6 +311,38 @@ contract Unit is Test {
         vm.stopPrank();
     }
 
+    function testAcceptBidUsedTicket() external {
+        vm.startPrank(alice);
+        purchaseToken.mint{value: 1e18}();
+        purchaseToken.approve(address(primaryMarket), 100e18);
+        primaryMarket.purchase(address(ticketNFT), "Alice");
+        ticketNFT.approve(address(secondaryMarket), 0);
+        secondaryMarket.listTicket(address(ticketNFT), 0, 150e18);
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        purchaseToken.mint{value: 2e18}();
+        purchaseToken.approve(address(secondaryMarket), 155e18);
+        secondaryMarket.submitBid(address(ticketNFT), 0, 155e18, "Bob");
+        vm.stopPrank();
+
+        vm.startPrank(charlie);
+        ticketNFT.setUsed(0);
+        vm.stopPrank();
+
+        vm.startPrank(alice);
+        vm.expectRevert("Cannot accept bid on expired or used tickets");
+        secondaryMarket.acceptBid(address(ticketNFT), 0);
+        vm.stopPrank();
+    }
+
+    function testAcceptBidListingNotExist() external {
+        vm.startPrank(alice);
+        vm.expectRevert("Listing does not exist");
+        secondaryMarket.acceptBid(address(ticketNFT), 0);
+        vm.stopPrank();
+    }
+
     function testAcceptBid() external {
         vm.startPrank(alice);
         purchaseToken.mint{value: 1e18}();
@@ -257,11 +351,13 @@ contract Unit is Test {
         ticketNFT.approve(address(secondaryMarket), 0);
         secondaryMarket.listTicket(address(ticketNFT), 0, 150e18);
         vm.stopPrank();
+
         vm.startPrank(bob);
         purchaseToken.mint{value: 2e18}();
         purchaseToken.approve(address(secondaryMarket), 155e18);
         secondaryMarket.submitBid(address(ticketNFT), 0, 155e18, "Bob");
         vm.stopPrank();
+
         vm.startPrank(alice);
         uint256 aliceBalanceBefore = purchaseToken.balanceOf(alice);
         secondaryMarket.acceptBid(address(ticketNFT), 0);
@@ -300,6 +396,7 @@ contract Unit is Test {
         purchaseToken.approve(address(primaryMarket), 100e18);
         primaryMarket.purchase(address(ticketNFT), "Alice");
         vm.stopPrank();
+
         vm.startPrank(charlie);
         ticketNFT.setUsed(0);
         assertEq(ticketNFT.isExpiredOrUsed(0), true);
@@ -312,6 +409,7 @@ contract Unit is Test {
         purchaseToken.approve(address(primaryMarket), 100e18);
         primaryMarket.purchase(address(ticketNFT), "Alice");
         vm.stopPrank();
+
         vm.startPrank(charlie);
         ticketNFT.setUsed(0);
         assertEq(ticketNFT.isExpiredOrUsed(0), true);
@@ -328,8 +426,16 @@ contract Unit is Test {
         ticketNFT.approve(address(secondaryMarket), 0);
         secondaryMarket.listTicket(address(ticketNFT), 0, 150e18);
         vm.stopPrank();
+
         vm.startPrank(bob);
         vm.expectRevert("Only the account that listed the ticket may delist the ticket");
+        secondaryMarket.delistTicket(address(ticketNFT), 0);
+        vm.stopPrank();
+    }
+
+    function testDelistTicketListingNotExist() external {
+        vm.startPrank(alice);
+        vm.expectRevert("Listing does not exist");
         secondaryMarket.delistTicket(address(ticketNFT), 0);
         vm.stopPrank();
     }
@@ -342,11 +448,13 @@ contract Unit is Test {
         ticketNFT.approve(address(secondaryMarket), 0);
         secondaryMarket.listTicket(address(ticketNFT), 0, 150e18);
         vm.stopPrank();
+
         vm.startPrank(bob);
         purchaseToken.mint{value: 2e18}();
         purchaseToken.approve(address(secondaryMarket), 155e18);
         secondaryMarket.submitBid(address(ticketNFT), 0, 155e18, "Bob");
         vm.stopPrank();
+        
         vm.startPrank(alice);
         uint256 bobBalanceBefore = purchaseToken.balanceOf(bob);
         secondaryMarket.delistTicket(address(ticketNFT), 0);
