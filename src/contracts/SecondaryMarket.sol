@@ -6,6 +6,7 @@ import "../contracts/TicketNFT.sol";
 
 contract SecondaryMarket is ISecondaryMarket{
     struct ListingInformation{
+        bool exist;
         address lister;
         address highestBidder;
         string listerName;
@@ -32,10 +33,11 @@ contract SecondaryMarket is ISecondaryMarket{
         uint256 price
     ) external{
         TicketNFT ticketNFT = TicketNFT(ticketCollection);
+        require(!_listings[ticketCollection][ticketID].exist, "Listing already exist");
         require(msg.sender == ticketNFT.holderOf(ticketID), "Only the holder of the ticket can list ticket");
         require(!ticketNFT.isExpiredOrUsed(ticketID), "Only non-expired and unused tickets can be listed");
         ticketNFT.transferFrom(msg.sender, address(this), ticketID);
-        _listings[ticketCollection][ticketID] = ListingInformation(msg.sender, address(0), ticketNFT.holderNameOf(ticketID), "", price);
+        _listings[ticketCollection][ticketID] = ListingInformation(true, msg.sender, address(0), ticketNFT.holderNameOf(ticketID), "", price);
         emit Listing(msg.sender, ticketCollection, ticketID, price);
     }
 
@@ -53,6 +55,7 @@ contract SecondaryMarket is ISecondaryMarket{
         string calldata name
     ) external{
         TicketNFT ticketNFT = TicketNFT(ticketCollection);
+        require(_listings[ticketCollection][ticketID].exist, "Listing does not exist");
         require(!ticketNFT.isExpiredOrUsed(ticketID), "Bid can only be made on non-expired and unused tickets");
         if (bidAmount > _listings[ticketCollection][ticketID].highestBid || _listings[ticketCollection][ticketID].highestBidder == address(0)){
             if (_listings[ticketCollection][ticketID].highestBidder != address(0)){
@@ -76,6 +79,7 @@ contract SecondaryMarket is ISecondaryMarket{
         address ticketCollection,
         uint256 ticketId
     ) external view returns (uint256){
+        require(_listings[ticketCollection][ticketId].exist, "Listing does not exist");
         return _listings[ticketCollection][ticketId].highestBid;
     }
 
@@ -86,6 +90,7 @@ contract SecondaryMarket is ISecondaryMarket{
         address ticketCollection,
         uint256 ticketId
     ) external view returns (address){
+        require(_listings[ticketCollection][ticketId].exist, "Listing does not exist");
         return _listings[ticketCollection][ticketId].highestBidder;
     }
 
@@ -99,9 +104,11 @@ contract SecondaryMarket is ISecondaryMarket{
      * minus the fee. The fee should go to the creator of the `ticketCollection`.
      */
     function acceptBid(address ticketCollection, uint256 ticketID) external{
-        require(msg.sender == _listings[ticketCollection][ticketID].lister, "Only the ticket lister can accept bid");
-        require(_listings[ticketCollection][ticketID].highestBidder != address(0), "There is currently no bid");
         TicketNFT ticketNFT = TicketNFT(ticketCollection);
+        require(_listings[ticketCollection][ticketID].exist, "Listing does not exist");
+        require(msg.sender == _listings[ticketCollection][ticketID].lister, "Only the ticket lister can accept bid");
+        require(!ticketNFT.isExpiredOrUsed(ticketID), "Cannot accept bid on expired or used tickets");
+        require(_listings[ticketCollection][ticketID].highestBidder != address(0), "There is currently no bid");
         address creator = ticketNFT.creator();
         address lister = _listings[ticketCollection][ticketID].lister;
         address highestBidder = _listings[ticketCollection][ticketID].highestBidder;
@@ -125,6 +132,7 @@ contract SecondaryMarket is ISecondaryMarket{
      * to msg.sender, i.e., the lister, and escrowed bid funds should be return to the bidder, if any.
      */
     function delistTicket(address ticketCollection, uint256 ticketID) external{
+        require(_listings[ticketCollection][ticketID].exist, "Listing does not exist");
         require(msg.sender == _listings[ticketCollection][ticketID].lister, "Only the account that listed the ticket may delist the ticket");
         if (_listings[ticketCollection][ticketID].highestBidder != address(0)){
             address highestBidder = _listings[ticketCollection][ticketID].highestBidder;
